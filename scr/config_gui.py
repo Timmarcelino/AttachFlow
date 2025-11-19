@@ -11,6 +11,9 @@ config_path = os.path.join("config", "config.ini")
 has_pywin32 = importlib.util.find_spec("win32com") is not None
 has_exchangelib = importlib.util.find_spec("exchangelib") is not None
 
+# Estado da validação
+validacao_ok = False
+
 # Função para carregar configurações existentes
 def carregar_config():
     config = configparser.ConfigParser()
@@ -22,6 +25,10 @@ def carregar_config():
 
 # Função para salvar configurações
 def salvar_config():
+    if not validacao_ok:
+        messagebox.showerror("Erro", "Valide a conexão antes de salvar.")
+        return  
+    
     pasta_outlook = entry_outlook.get().strip()
     pasta_destino = entry_destino.get().strip()
     conexao = combo_conexao.get().strip()
@@ -50,6 +57,55 @@ def escolher_pasta():
     if pasta:
         entry_destino.delete(0, tk.END)
         entry_destino.insert(0, pasta)
+
+# Função para validar conexão
+def validar_conexao():
+    global validacao_ok
+    pasta_outlook = entry_outlook.get().strip()
+    conexao = combo_conexao.get().strip()
+
+    if not pasta_outlook or not conexao:
+        messagebox.showerror("Erro", "Preencha os campos antes de validar.")
+        return
+
+    try:
+        if conexao == "pywin32":
+            if not has_pywin32:
+                raise Exception("Biblioteca pywin32 não instalada.")
+            import win32com.client
+            outlook = win32com.client.Dispatch("Outlook.Application").GetNamespace("MAPI")
+            inbox = outlook.GetDefaultFolder(6)
+            pasta_encontrada = any(folder.Name == pasta_outlook for folder in inbox.Folders)
+            if pasta_encontrada:
+                label_status.config(text="✅ Conexão OK (pywin32)", fg="green")
+                validacao_ok = True
+            else:
+                label_status.config(text="❌ Pasta não encontrada.", fg="red")
+                validacao_ok = False
+
+        elif conexao == "exchangelib":
+            if not has_exchangelib:
+                raise Exception("Biblioteca exchangelib não instalada.")
+            from exchangelib import Account, Credentials, DELEGATE
+            email = simpledialog.askstring("Credenciais", "Informe seu e-mail:")
+            senha = simpledialog.askstring("Credenciais", "Informe sua senha:", show='*')
+            creds = Credentials(username=email, password=senha)
+            try:
+                account = Account(primary_smtp_address=email, credentials=creds, autodiscover=True, access_type=DELEGATE)
+                pasta_encontrada = any(f.name == pasta_outlook for f in account.root.walk())
+                if pasta_encontrada:
+                    label_status.config(text="✅ Conexão OK (exchangelib)", fg="green")
+                    validacao_ok = True
+                else:
+                    label_status.config(text="❌ Pasta não encontrada.", fg="red")
+                    validacao_ok = False
+            except Exception as e:
+                label_status.config(text=f"❌ Erro: {e}", fg="red")
+                validacao_ok = False
+
+    except Exception as e:
+        label_status.config(text=f"❌ Erro: {e}", fg="red")
+        validacao_ok = False
 
 # Criar janela principal
 root = tk.Tk()
@@ -99,6 +155,12 @@ else:
 
 label_extensao = tk.Label(root, text="Extensão (fixo): pdf")
 label_extensao.pack(pady=10)
+
+btn_validar = tk.Button(root, text="Validar Conexão", command=validar_conexao)
+btn_validar.pack(pady=5)
+
+label_status = tk.Label(root, text="Status: Não validado", fg="blue")
+label_status.pack(pady=5)
 
 btn_salvar = tk.Button(root, text="Salvar Configuração", command=salvar_config)
 btn_salvar.pack(pady=10)
