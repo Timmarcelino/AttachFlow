@@ -8,6 +8,7 @@ from __future__ import annotations
 import configparser
 import datetime as dt
 import logging
+import os
 import queue
 import re
 import threading
@@ -41,7 +42,8 @@ class AppConfig:
         config = configparser.ConfigParser()
         config.read(CONFIG_FILE)
         data = config["DEFAULT"]
-        pasta_destino = Path(data.get("pasta_destino", "").strip())
+        destino_str = os.path.expandvars(os.path.expanduser(data.get("pasta_destino", "").strip()))
+        pasta_destino = Path(destino_str)
         if not pasta_destino:
             raise ValueError("Pasta destino não configurada.")
         conexao = data.get("conexao", "pywin32").lower().strip()
@@ -214,37 +216,56 @@ class AttachmentDownloader:
                     logging.info("Anexo salvo: %s", target_path)
                     self._save_record(message_date, sender_name, subject, target_path)
 
-    def _find_pywin32_folder(self, namespace, folder_name: str):
-        if not folder_name:
-            return namespace.GetDefaultFolder(6)  # Inbox por padrão
+    def _split_outlook_path(self, folder_name: str) -> List[str]:
+        normalized = folder_name.replace("\\", "/").replace(">", "/")
+        return [parte.strip() for parte in normalized.split("/") if parte.strip()]
 
-        def walk(folder):
-            if folder.Name == folder_name:
+    def _find_pywin32_folder(self, namespace, folder_name: str):
+        partes = self._split_outlook_path(folder_name)
+        inbox = namespace.GetDefaultFolder(6)
+        if not partes:
+            return inbox
+
+        def descend(folder, remaining: List[str]):
+            if not remaining:
                 return folder
-            for sub in folder.Folders:
-                found = walk(sub)
-                if found is not None:
-                    return found
+            alvo = remaining[0].lower()
+            for child in folder.Folders:
+                if getattr(child, "Name", "").lower() == alvo:
+                    return descend(child, remaining[1:])
             return None
 
-        # Procura na raiz padrão e depois em todas as stores
-        inbox = namespace.GetDefaultFolder(6)
-        found = walk(inbox)
-        if found is not None:
-            return found
+        inbox_name = getattr(inbox, "Name", "").lower()
+        if partes[0].lower() == inbox_name:
+            return descend(inbox, partes[1:])
+
         for store in namespace.Folders:
-            found = walk(store)
-            if found is not None:
-                return found
-        return None
+            if getattr(store, "Name", "").lower() == partes[0].lower():
+                return descend(store, partes[1:])
+
+        # fallback: tenta interpretar como subpasta da caixa de entrada
+        return descend(inbox, partes)
 
     def _find_exchangelib_folder(self, account, folder_name: str):
-        if not folder_name:
+        partes = self._split_outlook_path(folder_name)
+        if not partes:
             return account.inbox
-        for folder in account.root.walk():
-            if folder.name == folder_name:
+
+        def descend(folder, remaining: List[str]):
+            if not remaining:
                 return folder
-        return None
+            alvo = remaining[0].lower()
+            for child in folder.children:
+                nome = getattr(child, "name", "")
+                if nome and nome.lower() == alvo:
+                    return descend(child, remaining[1:])
+            return None
+
+        # tenta a partir da raiz da mailbox e da inbox
+        encontrado = descend(account.root, partes)
+        if encontrado is not None:
+            return encontrado
+        return descend(account.inbox, partes)
 
 
 def setup_logging() -> None:
