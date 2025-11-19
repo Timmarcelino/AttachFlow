@@ -5,6 +5,7 @@ import os
 import importlib.util
 import subprocess
 import sys
+import traceback
 
 # Caminho do arquivo de configuração
 config_path = os.path.join("config", "config.ini")
@@ -130,14 +131,17 @@ def validar_conexao():
                     validacao_ok = True
                 else:
                     label_status.config(text="❌ Pasta não encontrada.", fg="red")
-                    validacao_ok = False
+                    validacao_ok = False           
             except Exception as e:
-                label_status.config(text=f"❌ Erro: {e}", fg="red")
+                erro_detalhado = f"{type(e).__name__}: {e}\n{traceback.format_exc()}"
+                label_status.config(text=f"❌ Erro: {erro_detalhado}", fg="red")
                 validacao_ok = False
-
+    
     except Exception as e:
-        label_status.config(text=f"❌ Erro: {e}", fg="red")
+        erro_detalhado = f"{type(e).__name__}: {e}\n{traceback.format_exc()}"
+        label_status.config(text=f"❌ Erro: {erro_detalhado}", fg="red")
         validacao_ok = False
+
 
 # Criar janela principal
 root = tk.Tk()
