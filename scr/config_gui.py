@@ -1,15 +1,26 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
+from tkinter import filedialog, messagebox, ttk, simpledialog
 import configparser
 import os
 import importlib.util
+import subprocess
+import sys
 
 # Caminho do arquivo de configuração
 config_path = os.path.join("config", "config.ini")
 
-# Verificar bibliotecas instaladas
-has_pywin32 = importlib.util.find_spec("win32com") is not None
-has_exchangelib = importlib.util.find_spec("exchangelib") is not None
+# Função para verificar se uma biblioteca está instalada
+def is_installed(module_name):
+    return importlib.util.find_spec(module_name) is not None
+
+# Função para instalar uma biblioteca via pip
+def install_package(package_name):
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", package_name])
+        return True
+    except Exception as e:
+        messagebox.showerror("Erro", f"Falha ao instalar {package_name}: {e}")
+        return False
 
 # Estado da validação
 validacao_ok = False
@@ -27,8 +38,8 @@ def carregar_config():
 def salvar_config():
     if not validacao_ok:
         messagebox.showerror("Erro", "Valide a conexão antes de salvar.")
-        return  
-    
+        return
+
     pasta_outlook = entry_outlook.get().strip()
     pasta_destino = entry_destino.get().strip()
     conexao = combo_conexao.get().strip()
@@ -68,10 +79,33 @@ def validar_conexao():
         messagebox.showerror("Erro", "Preencha os campos antes de validar.")
         return
 
+    # Verifica se a biblioteca está instalada, se não estiver, oferece instalar
+    if conexao == "pywin32" and not is_installed("win32com"):
+        resposta = messagebox.askyesno("Instalar pywin32", "A biblioteca pywin32 não está instalada. Deseja instalar agora?")
+        if resposta:
+            if install_package("pywin32"):
+                messagebox.showinfo("Instalado", "pywin32 instalada com sucesso. Tente validar novamente.")
+            else:
+                label_status.config(text="❌ Falha na instalação do pywin32.", fg="red")
+            return
+        else:
+            label_status.config(text="❌ pywin32 não instalada.", fg="red")
+            return
+
+    if conexao == "exchangelib" and not is_installed("exchangelib"):
+        resposta = messagebox.askyesno("Instalar exchangelib", "A biblioteca exchangelib não está instalada. Deseja instalar agora?")
+        if resposta:
+            if install_package("exchangelib"):
+                messagebox.showinfo("Instalado", "exchangelib instalada com sucesso. Tente validar novamente.")
+            else:
+                label_status.config(text="❌ Falha na instalação do exchangelib.", fg="red")
+            return
+        else:
+            label_status.config(text="❌ exchangelib não instalada.", fg="red")
+            return
+
     try:
         if conexao == "pywin32":
-            if not has_pywin32:
-                raise Exception("Biblioteca pywin32 não instalada.")
             import win32com.client
             outlook = win32com.client.Dispatch("Outlook.Application").GetNamespace("MAPI")
             inbox = outlook.GetDefaultFolder(6)
@@ -84,8 +118,6 @@ def validar_conexao():
                 validacao_ok = False
 
         elif conexao == "exchangelib":
-            if not has_exchangelib:
-                raise Exception("Biblioteca exchangelib não instalada.")
             from exchangelib import Account, Credentials, DELEGATE
             email = simpledialog.askstring("Credenciais", "Informe seu e-mail:")
             senha = simpledialog.askstring("Credenciais", "Informe sua senha:", show='*')
@@ -110,7 +142,7 @@ def validar_conexao():
 # Criar janela principal
 root = tk.Tk()
 root.title("Configuração do AttachFlow")
-root.geometry("400x320")
+root.geometry("400x400")
 
 # Carregar configurações existentes
 config_data = carregar_config()
@@ -133,25 +165,9 @@ btn_escolher.pack(pady=5)
 
 label_conexao = tk.Label(root, text="Método de conexão:")
 label_conexao.pack(pady=5)
-combo_conexao = ttk.Combobox(root, values=[])
+combo_conexao = ttk.Combobox(root, values=["pywin32", "exchangelib"])
 combo_conexao.pack(pady=5)
-
-# Lógica para definir opções de conexão
-if has_pywin32 and has_exchangelib:
-    combo_conexao["values"] = ["pywin32", "exchangelib"]
-    combo_conexao.set(config_data.get('conexao', 'pywin32'))
-elif has_pywin32:
-    combo_conexao["values"] = ["pywin32"]
-    combo_conexao.set("pywin32")
-    combo_conexao.config(state="disabled")
-elif has_exchangelib:
-    combo_conexao["values"] = ["exchangelib"]
-    combo_conexao.set("exchangelib")
-    combo_conexao.config(state="disabled")
-else:
-    combo_conexao.set("Nenhuma biblioteca disponível")
-    combo_conexao.config(state="disabled")
-    messagebox.showerror("Erro", "Nenhuma biblioteca encontrada. Instale pywin32 ou exchangelib.")
+combo_conexao.set(config_data.get('conexao', 'pywin32'))
 
 label_extensao = tk.Label(root, text="Extensão (fixo): pdf")
 label_extensao.pack(pady=10)
@@ -164,9 +180,5 @@ label_status.pack(pady=5)
 
 btn_salvar = tk.Button(root, text="Salvar Configuração", command=salvar_config)
 btn_salvar.pack(pady=10)
-
-# Desabilitar botão salvar se nenhuma biblioteca disponível
-if not (has_pywin32 or has_exchangelib):
-    btn_salvar.config(state="disabled")
 
 root.mainloop()
