@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import JSONField 
 
 class EmailAccount(models.Model):
     """
@@ -40,12 +41,29 @@ class EmailAccount(models.Model):
         help_text="Se desactivar, a conta deixa de ser processada pelo AttachFlow"
     )
 
+    cached_folders = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Lista de pastas IMAP descobertas no último teste de ligação."
+    )
+
+    last_connection_ok = models.BooleanField(
+        default=False,
+        help_text="Resultado do último teste de ligação."
+    )
+
+    last_connection_message = models.TextField(
+        blank=True,
+        help_text="Mensagem do último teste (sucesso/erro)."
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
 
-    class Meta:
-        verbose_name = "Conta de Email"
-        verbose_name_plural = "Contas de Email"
+class Meta:
+    verbose_name = "Conta de Email"
+    verbose_name_plural = "Contas de Email"
 
-    def __str__(self):
-        return f"{self.name} ({self.username})"
+def __str__(self):
+    return f"{self.name} ({self.username})"
