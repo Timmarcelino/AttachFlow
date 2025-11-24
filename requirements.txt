@@ -1,4 +1,17 @@
-pywin32
-pandas
-openpyxl
-tkintertable
+# Framework Web
+Django==5.1.2
+
+# IMAP mais robusto / simples que imaplib
+imapclient==3.0.1
+
+# Expressões regulares avançadas (opcional, mas útil)
+regex==2024.9.11
+
+# Configurações em YAML
+PyYAML==6.0.2
+
+# Scheduler futuro (opcional, já deixado aqui para planeamento)
+APScheduler==3.10.4
+
+# Para requests HTTP (se mais tarde formos integrar APIs)
+requests==2.32.3

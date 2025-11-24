@@ -1,26 +1,57 @@
-# 📌 AttachFlow
+# AttachFlow
 
-Automação para download e organização de anexos PDF do Outlook com interface gráfica, renomeação inteligente e geração de relatórios.
+AttachFlow é uma aplicação pessoal para automatizar a leitura de caixas de email via IMAP, identificar mensagens que obedecem a regras configuráveis e descarregar anexos para pastas específicas. O objectivo é simplificar rotinas manuais, criar históricos consistentes e fornecer um painel web de controlo, estatísticas e execução de regras.
 
-## ✅ Descrição
-O **AttachFlow** conecta ao Microsoft Outlook, acessa uma pasta específica de e-mails e baixa anexos PDF automaticamente.
+Este repositório contém duas camadas principais:
 
-## 🚀 Funcionalidades
-- Interface gráfica intuitiva
-- Renomeação inteligente com data, hora e remetente
-- Relatório Excel e log de execução
+- **attachflow_core** — Módulo independente com toda a lógica funcional (IMAP, regras, download, logging).
+- **attachflow_web** — Interface web construída em Django para gestão de contas, regras, execuções, logs e estatísticas.
 
-## 📦 Instalação
-```bash
-git clone https://github.com/seuusuario/AttachFlow.git
-cd AttachFlow
-pip install -r requirements.txt
-```
+O desenvolvimento é pensado para evoluir de forma incremental, permitindo um MVP simples e funcional, seguido de uma expansão modular.
 
-## ▶ Como usar
-```bash
-python baixar_anexos_gui.py
-```
+---
 
-## 📜 Licença
-Distribuído sob a licença MIT. Consulte o arquivo LICENSE para mais detalhes.
+## 🧱 Estado Actual
+
+- Repositório inicial criado.
+- Planeamento arquitectural definido.
+- README introduzido (documento vivo em actualização contínua).
+
+---
+
+## 🎯 Objectivos do Projecto
+
+1. **Ler caixas de email via IMAP (Outlook/Microsoft, Gmail, etc.)**
+2. **Aplicar regras configuráveis**:
+   - Remetente
+   - Assunto
+   - Padrões de nome de ficheiro (regex)
+   - Tipo de anexo
+3. **Descarregar anexos automaticamente** para pastas definidas.
+4. **Registar execuções e métricas**:
+   - Nº de emails processados
+   - Nº de anexos descarregados
+   - Logs detalhados
+5. **Oferecer um painel web em Django**:
+   - CRUD de contas de email
+   - CRUD de regras
+   - Execução manual de regras
+   - Histórico de execuções
+   - Dashboard com estatísticas
+
+---
+
+## 🏗️ Estrutura Inicial (prevista)
+
+```text
+attachflow/
+  attachflow_core/
+    (lógica IMAP, regras, downloads)
+  attachflow_web/
+    (projecto Django)
+  config/
+  data/
+  logs/
+  README.md
+  .venv/
+  requirements.txt
