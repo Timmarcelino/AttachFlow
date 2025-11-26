@@ -7,7 +7,7 @@ class EmailAccount(models.Model):
     """
 
     name = models.CharField(
-        max_length=100,
+        max_length=150,
         help_text="Nome amigável da conta (ex.: Outlook Pessoal, Conta LBC, etc.)"
     )
     host = models.CharField(
