@@ -36,6 +36,7 @@ staticfiles/
 static/
 *.sqlite3
 local_settings.py
+Superuser.txt
 
 # Migrations (opcional — manter se quiseres rever versões)
 # Comentado porque normalmente queremos versionar migrations
